@@ -1,10 +1,6 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
-import plotly.express as px
-
-# 3.1 Import libraries
-# Already done above.
 
 # 3.2 Page configuration
 st.set_page_config(
@@ -84,23 +80,6 @@ def make_heatmap(input_df, input_y, input_x, input_color, input_color_theme):
     ).properties(width=1500, height=500)  # Wider heatmap
     return heatmap
 
-# Choropleth map
-def make_choropleth(input_df, input_id, input_column, input_color_theme):
-    choropleth = px.choropleth(input_df, locations=input_id, color=input_column, locationmode="country names",
-                           color_continuous_scale=input_color_theme,
-                           range_color=(0, max(df_filtered['Total Issuer Audit Clients'])),
-                           scope="world",  # Global scope
-                           labels={'Total Issuer Audit Clients':'Total Issuer Audit Clients'}
-                          )
-    choropleth.update_layout(
-        template='plotly_dark',
-        plot_bgcolor='rgba(0, 0, 0, 0)',
-        paper_bgcolor='rgba(0, 0, 0, 0)',
-        margin=dict(l=0, r=0, t=0, b=0),
-        height=350
-    )
-    return choropleth
-
 # Line chart for sentiment analysis
 def make_line_chart(input_df):
     line_chart = alt.Chart(input_df).mark_line(point=True).encode(
@@ -133,8 +112,6 @@ def make_word_count_plot(input_df):
     return word_count_plot
 
 # 3.6 App layout
-#st.title('PCAOB Inspection Data Dashboard')
-
 col1, col2 = st.columns((2, 3))
 
 with col1:
@@ -143,16 +120,10 @@ with col1:
     st.altair_chart(heatmap, use_container_width=True)
 
 with col2:
-    st.markdown('#### Choropleth Map of Total Issuer Audit Clients')
-    choropleth = make_choropleth(df_filtered, 'Country', 'Total Issuer Audit Clients', selected_color_theme)
-    st.plotly_chart(choropleth, use_container_width=True)
-
-st.markdown('#### Average Sentiment Over the Years')
-line_chart = make_line_chart(df_filtered)
-st.altair_chart(line_chart, use_container_width=True)
+    st.markdown('#### Average Sentiment Over the Years')
+    line_chart = make_line_chart(df_filtered)
+    st.altair_chart(line_chart, use_container_width=True)
 
 st.markdown('#### Average Word Count by Company')
 word_count_plot = make_word_count_plot(df_filtered)
 st.altair_chart(word_count_plot, use_container_width=True)
-
-# Additional plots (word_count, etc.) can be added similarly.
