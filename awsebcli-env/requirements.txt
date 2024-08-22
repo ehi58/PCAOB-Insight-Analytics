@@ -1,22 +1,22 @@
-fastapi==0.112.1
-uvicorn==0.30.6
-gunicorn==22.0.0
+#fastapi==0.112.1
+#uvicorn==0.30.6
+#gunicorn==22.0.0
 streamlit==1.37.1
-pydantic==2.8.2
-pandas==2.0.1
-numpy==1.24.3
-plotly==5.15.0
-requests>=2.31
-cryptography>=39.0.0
-botocore>=1.23.41,<1.32.0
-boto3==1.26.12
-awsebcli==3.20.10
-elastic-transport==8.4.0
-elasticsearch==8.9.0
-email_validator==2.1.1  # If you are validating emails
-PyYAML==6.0.1           # YAML parsing, used in configuration files
-python-dotenv==1.0.0    # For environment variables
+#pydantic==2.8.2
+#pandas==2.0.1
+#numpy==1.24.3
+#plotly==5.15.0
+#requests>=2.31
+#cryptography>=39.0.0
+#botocore>=1.23.41,<1.32.0
+#boto3==1.26.12
+#awsebcli==3.20.10
+#elastic-transport==8.4.0
+#elasticsearch==8.9.0
+#email_validator==2.1.1  # If you are validating emails
+#PyYAML==6.0.1           # YAML parsing, used in configuration files
+#python-dotenv==1.0.0    # For environment variables
 pytz==2022.1            # Timezone information
-pyarrow==16.1.0         # If you are using Apache Arrow
-matplotlib==3.7.1       # If you are plotting using Matplotlib
-pdfplumber==0.11.2      # If you are handling PDF data
+#pyarrow==16.1.0         # If you are using Apache Arrow
+#matplotlib==3.7.1       # If you are plotting using Matplotlib
+#pdfplumber==0.11.2      # If you are handling PDF data
