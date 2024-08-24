@@ -12,7 +12,7 @@ import os
 port = int(os.environ.get("PORT", 8501))
 
 # Run the app with the specified port
-st.set_option('server.port', port)
+#st.set_option('server.port', port)
 
 # 3.2 Page configuration
 st.set_page_config(
