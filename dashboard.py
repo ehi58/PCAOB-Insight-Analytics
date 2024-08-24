@@ -1,11 +1,18 @@
 import streamlit as st
-import seaborn as sns
+#import seaborn as sns
 import pandas as pd
 import altair as alt
 import plotly.express as px
+import os
 
 # 3.1 Import libraries
 # Already done above.
+
+# Get the port from the environment variable
+port = int(os.environ.get("PORT", 8501))
+
+# Run the app with the specified port
+st.set_option('server.port', port)
 
 # 3.2 Page configuration
 st.set_page_config(
