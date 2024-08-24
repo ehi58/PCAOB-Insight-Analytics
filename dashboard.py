@@ -1,4 +1,5 @@
 import streamlit as st
+import seaborn as sns
 import pandas as pd
 import altair as alt
 import plotly.express as px
@@ -29,6 +30,19 @@ df[float_columns] = df[float_columns].round(3)
 with st.sidebar:
     st.title('📊 PCAOB Inspection Dashboard')
 
+    st.sidebar.subheader("Project Description")
+    description = """
+    The **Public Company Accounting Oversight Board (PCAOB)** oversees the audits of public companies and broker-dealers to ensure compliance with laws and professional standards. 
+    This dashboard analyzes PCAOB inspection reports with a focus on sentiment analysis and audit deficiency rates.
+
+    - **Sentiment Analysis**: Evaluates the tone of the language used in the inspection reports, categorizing them as positive, neutral, or negative.
+    - **Deficiency Rates**: Tracks the percentage of audit engagements with significant deficiencies across different years and firms.
+    - **Key Insights**: A correlation between negative sentiment scores and higher deficiency rates suggests a relationship between the report's tone and the severity of audit issues.
+
+    Explore the data further by accessing the [data source](https://pcaobus.org/oversight/inspections/firm-inspection-reports?pg={}&mpp=96&globalnetworks=Ernst%20%26%20Young%20Global%20Limited%2CDeloitte%20Touche%20Tohmatsu%20Limited%2CKPMG%20International%20Cooperative%2CPricewaterhouseCoopers%20International%20Limited&country=South%20Korea%2CSouth%20Africa%2CJapan%2CColombia%2CCayman%20Islands%2CCanada%2CBrazil%2CBahamas%2CArgentina%2CUnited%20Kingdom%2CUnited%20States%2CTaiwan%2CSwitzerland%2CSweden%2CSpain%2CLuxembourg%2CNetherlands%2CNorway%2CPanama%2CPeru%2CPhilippines%2CSingapore).
+    """
+    st.sidebar.write(description)
+
     selected_years = st.multiselect('Select years', options=sorted(df['Inspection Year'].unique()), default=sorted(df['Inspection Year'].unique()))
     
     selected_countries = st.multiselect('Select countries', options=sorted(df['Country'].unique()), default=sorted(df['Country'].unique()))
@@ -38,9 +52,17 @@ with st.sidebar:
     color_theme_list = ['viridis', 'cividis', 'blues', 'reds']
     selected_color_theme = st.selectbox('Select a color theme', color_theme_list)
 
+    #Add a slider filter for word count
     word_count_min = int(df['word_count'].min())
     word_count_max = int(df['word_count'].max())
     selected_word_count = st.slider('Select word count range', min_value=word_count_min, max_value=word_count_max, value=(word_count_min, word_count_max))
+
+    # Add a slider filter for sentiment_avg, rounded to the nearest hundredths
+    sentiment_min = round(df['sentiment_avg'].min(), 2)
+    sentiment_max = round(df['sentiment_avg'].max(), 2)
+    selected_sentiment_range = st.sidebar.slider('Select sentiment score range', min_value=sentiment_min, max_value=sentiment_max, value=(sentiment_min, sentiment_max))
+
+
 
 # Filter the dataframe based on sidebar selections
 df_filtered = df.copy()
@@ -55,6 +77,18 @@ if selected_companies:
     df_filtered = df_filtered[df_filtered['Company'].isin(selected_companies)]
 
 df_filtered = df_filtered[(df_filtered['word_count'] >= selected_word_count[0]) & (df_filtered['word_count'] <= selected_word_count[1])]
+
+#Filtered data
+# Remove the "%" sign and convert the "Part I.A Deficiency Rate" column to float
+df_filtered['Part I.A Deficiency Rate'] = df_filtered['Part I.A Deficiency Rate'].str.replace('%', '').astype(float)
+
+# Replace NaN values in the 'Total Issuer Audit Clients' column with 0 and convert to float
+df_filtered['Total Issuer Audit Clients'] = df_filtered['Total Issuer Audit Clients'].fillna(0).astype(float)
+#df['Total Issuer Audit Clients'] = df['Total Issuer Audit Clients'].fillna(0)
+#df_filtered = df[(df['Inspection Year'].isin(selected_years)) & (df['Company'].isin(selected_companies))]
+
+# Apply sentiment_avg filter
+df_filtered = df_filtered[(df_filtered['sentiment_avg'] >= selected_sentiment_range[0]) & (df_filtered['sentiment_avg'] <= selected_sentiment_range[1])]
 
 # 3.4b Calculate key metrics
 total_clients = df_filtered['Total Issuer Audit Clients'].sum()
@@ -155,4 +189,38 @@ st.markdown('#### Average Word Count by Company')
 word_count_plot = make_word_count_plot(df_filtered)
 st.altair_chart(word_count_plot, use_container_width=True)
 
-# Additional plots (word_count, etc.) can be added similarly.
+# Additional plots (word_count, etc.) can be added similarly(added later).
+# Pie Chart: Distribution of Total Issuer Audit Clients by Company
+st.subheader('Distribution of Total Issuer Audit Clients by Company')
+fig_pie = px.pie(df_filtered, names='Company', values='Total Issuer Audit Clients', title='Distribution of Total Issuer Audit Clients by Company')
+st.plotly_chart(fig_pie)
+
+# Bar Chart: Total Issuer Audit Clients by Country and Company
+st.subheader('Total Issuer Audit Clients by Country and Company')
+fig_bar = px.bar(df_filtered, x='Country', y='Total Issuer Audit Clients', color='Company', barmode='group', title='Total Issuer Audit Clients by Country and Company')
+st.plotly_chart(fig_bar)
+
+# Scatter Plot: Total Issuer Audit Clients vs. Part I.A Deficiency Rate
+st.subheader('Total Issuer Audit Clients vs. Part I.A Deficiency Rate')
+fig_scatter = px.scatter(df_filtered, x='Total Issuer Audit Clients', y='Part I.A Deficiency Rate', color='Company', size='Total Issuer Audit Clients', title='Total Issuer Audit Clients vs. Part I.A Deficiency Rate')
+st.plotly_chart(fig_scatter)
+
+# Scatter Plot: Total Sentiment Sum vs. Part I.A Deficiency Rate
+st.subheader('Total Sentiment Sum vs. Part I.A Deficiency Rate')
+fig_scatter_1 = px.scatter(df_filtered, x='sentiment_sum', y='Part I.A Deficiency Rate', color='Company', size='sentiment_sum', title='Total Sentiment Sum vs. Part I.A Deficiency Rate')
+st.plotly_chart(fig_scatter_1)
+
+# Bar Chart: Total Issuer Audit Clients by Inspection Year and Company
+st.subheader('Total Issuer Audit Clients by Inspection Year and Company')
+fig_bar_year = px.bar(df_filtered, x='Inspection Year', y='Total Issuer Audit Clients', color='Company', title='Total Issuer Audit Clients by Inspection Year and Company')
+st.plotly_chart(fig_bar_year)
+
+# Box Plot: Sentiment Average Distribution by Company
+st.subheader('Sentiment Average Distribution by Company')
+fig_box_sentiment = px.box(df_filtered, x='Company', y='sentiment_avg', color='Company', title='Sentiment Average Distribution by Company')
+st.plotly_chart(fig_box_sentiment)
+
+# Histogram: Distribution of Word Count by Company
+st.subheader('Distribution of Word Count by Company')
+fig_hist_word_count = px.histogram(df_filtered, x='word_count', color='Company', title='Distribution of Word Count by Company')
+st.plotly_chart(fig_hist_word_count)
