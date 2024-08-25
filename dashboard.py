@@ -50,24 +50,31 @@ with st.sidebar:
     """
     st.sidebar.write(description)
 
-    selected_years = st.multiselect('Select years', options=sorted(df['Inspection Year'].unique()), default=sorted(df['Inspection Year'].unique()))
-    
-    selected_countries = st.multiselect('Select countries', options=sorted(df['Country'].unique()), default=sorted(df['Country'].unique()))
+    st.title("Filters")
 
-    selected_companies = st.multiselect('Select companies', options=sorted(df['Company'].unique()), default=sorted(df['Company'].unique()))
+    with st.expander("Select Years"):
+        selected_years = st.multiselect('Select years', options=sorted(df['Inspection Year'].unique()), default=sorted(df['Inspection Year'].unique()))
 
-    color_theme_list = ['viridis', 'cividis', 'blues', 'reds']
+    with st.expander("Select Countries"):
+        selected_countries = st.multiselect('Select countries', options=sorted(df['Country'].unique()), default=sorted(df['Country'].unique()))
+
+    with st.expander("Select Companies"):
+        selected_companies = st.multiselect('Select companies', options=sorted(df['Company'].unique()), default=sorted(df['Company'].unique()))
+
+    color_theme_list = ['viridis', 'cividis', 'blues', 'reds', 'plasma', 'inferno']
     selected_color_theme = st.selectbox('Select a color theme', color_theme_list)
 
     #Add a slider filter for word count
-    word_count_min = int(df['word_count'].min())
-    word_count_max = int(df['word_count'].max())
-    selected_word_count = st.slider('Select word count range', min_value=word_count_min, max_value=word_count_max, value=(word_count_min, word_count_max))
+    with st.expander("Word Count Range"):
+        word_count_min = int(df['word_count'].min())
+        word_count_max = int(df['word_count'].max())
+        selected_word_count = st.slider('Select word count range', min_value=word_count_min, max_value=word_count_max, value=(word_count_min, word_count_max))
 
     # Add a slider filter for sentiment_avg, rounded to the nearest hundredths
-    sentiment_min = round(df['sentiment_avg'].min(), 2)
-    sentiment_max = round(df['sentiment_avg'].max(), 2)
-    selected_sentiment_range = st.sidebar.slider('Select sentiment score range', min_value=sentiment_min, max_value=sentiment_max, value=(sentiment_min, sentiment_max))
+    with st.expander("Sentiment Score Range"):
+        sentiment_min = round(df['sentiment_avg'].min(), 2)
+        sentiment_max = round(df['sentiment_avg'].max(), 2)
+        selected_sentiment_range = st.slider('Select sentiment score range', min_value=sentiment_min, max_value=sentiment_max, value=(sentiment_min, sentiment_max))
 
 
 
@@ -93,6 +100,7 @@ df_filtered['Part I.A Deficiency Rate'] = df_filtered['Part I.A Deficiency Rate'
 df_filtered['Total Issuer Audit Clients'] = df_filtered['Total Issuer Audit Clients'].fillna(0).astype(float)
 #df['Total Issuer Audit Clients'] = df['Total Issuer Audit Clients'].fillna(0)
 #df_filtered = df[(df['Inspection Year'].isin(selected_years)) & (df['Company'].isin(selected_companies))]
+df_filtered['Total Issuer Audit Clients'].fillna(0, inplace=True)
 
 # Apply sentiment_avg filter
 df_filtered = df_filtered[(df_filtered['sentiment_avg'] >= selected_sentiment_range[0]) & (df_filtered['sentiment_avg'] <= selected_sentiment_range[1])]
@@ -118,8 +126,8 @@ def make_heatmap(input_df, input_y, input_x, input_color, input_color_theme):
     y=alt.Y(f'{input_y}:O', axis=alt.Axis(title="Company", titleFontSize=18, titlePadding=15, titleFontWeight=900, labelAngle=0)),
     x=alt.X(f'{input_x}:O', axis=alt.Axis(title="Year", titleFontSize=18, titlePadding=15, titleFontWeight=900, labelAngle=-45)),  # Tilted labels
     color=alt.Color(f'max({input_color}):Q',
-                    legend=None,
-                    scale=alt.Scale(scheme=input_color_theme)),
+                        legend=alt.Legend(title=input_color, orient="right"),  # Add legend for the color scale
+                        scale=alt.Scale(scheme=input_color_theme)),
     stroke=alt.value('black'),
     strokeWidth=alt.value(0.25),
     ).properties(width=1500, height=500)  # Wider heatmap
@@ -127,12 +135,14 @@ def make_heatmap(input_df, input_y, input_x, input_color, input_color_theme):
 
 # Choropleth map
 def make_choropleth(input_df, input_id, input_column, input_color_theme):
-    choropleth = px.choropleth(input_df, locations=input_id, color=input_column, locationmode="country names",
-                           color_continuous_scale=input_color_theme,
-                           range_color=(0, max(df_filtered['Total Issuer Audit Clients'])),
-                           scope="world",  # Global scope
-                           labels={'Total Issuer Audit Clients':'Total Issuer Audit Clients'}
-                          )
+    choropleth = px.choropleth(input_df, 
+                               locations=input_id, 
+                               color=input_column,
+                               locationmode="country names",
+                               color_continuous_scale=input_color_theme,
+                               range_color=(input_df[input_column].min(), input_df[input_column].max()),
+                               scope="world",
+                               labels={'Total Issuer Audit Clients':'Total Issuer Audit Clients'})
     choropleth.update_layout(
         template='plotly_dark',
         plot_bgcolor='rgba(0, 0, 0, 0)',
@@ -145,11 +155,9 @@ def make_choropleth(input_df, input_id, input_column, input_color_theme):
 # Line chart for sentiment analysis
 def make_line_chart(input_df):
     line_chart = alt.Chart(input_df).mark_line(point=True).encode(
-        x='Inspection Year',
+        x=alt.X('Inspection Year', axis=alt.Axis(labelAngle=-45)),  # Tilt x-axis labels by 45 degrees
         y=alt.Y('mean(sentiment_avg)', scale=alt.Scale(domain=[0.85, 1.0])),
         color='Company'
-    ).properties(
-        title='Average Sentiment by Year'
     )
     return line_chart
 
@@ -162,8 +170,6 @@ def make_word_count_plot(input_df):
         x=alt.X('mean_word_count:Q', title='Average Word Count', axis=alt.Axis(format=".2f")),  # Ensure x-axis values are rounded to three decimal places
         y=alt.Y('Company:N', sort='-x', title='Company'),
         color='Country:N'
-    ).properties(
-        title='Average Word Count by Company'
     ).configure_axis(
         grid=False,
         titleFontSize=14,
@@ -176,58 +182,163 @@ def make_word_count_plot(input_df):
 # 3.6 App layout
 #st.title('PCAOB Inspection Data Dashboard')
 
-col1, col2 = st.columns((2, 3))
+# col1, col2 = st.columns((2, 3))
 
-with col1:
-    st.markdown('#### Heatmap of Sentiment Scores by Year and Company')
-    heatmap = make_heatmap(df_filtered, 'Company', 'Inspection Year', 'sentiment_avg', selected_color_theme)
-    st.altair_chart(heatmap, use_container_width=True)
+# with col1:
+#     st.markdown('#### Heatmap of Sentiment Scores by Year and Company')
+#     heatmap = make_heatmap(df_filtered, 'Company', 'Inspection Year', 'sentiment_avg', selected_color_theme)
+#     st.altair_chart(heatmap, use_container_width=True)
 
-with col2:
-    st.markdown('#### Choropleth Map of Total Issuer Audit Clients')
-    choropleth = make_choropleth(df_filtered, 'Country', 'Total Issuer Audit Clients', selected_color_theme)
-    st.plotly_chart(choropleth, use_container_width=True)
+# with col2:
+#     st.markdown('#### Choropleth Map of Total Issuer Audit Clients')
+#     choropleth = make_choropleth(df_filtered, 'Country', 'Total Issuer Audit Clients', selected_color_theme)
+#     st.plotly_chart(choropleth, use_container_width=True)
 
-st.markdown('#### Average Sentiment Over the Years')
+# st.markdown('#### Average Sentiment Over the Years')
+# line_chart = make_line_chart(df_filtered)
+# st.altair_chart(line_chart, use_container_width=True)
+
+# st.markdown('#### Average Word Count by Company')
+# word_count_plot = make_word_count_plot(df_filtered)
+# st.altair_chart(word_count_plot, use_container_width=True)
+
+#-------------------------------------------------------------------------------------
+#Aggregated Metrics for Choropleth Map
+df_aggregated = df_filtered.groupby('Country')['Total Issuer Audit Clients'].sum().reset_index()
+
+# First Row: Heatmap
+st.markdown('#### Heatmap of Sentiment Scores by Year and Company')
+st.markdown("This heatmap shows the average sentiment scores over the years for each company. "
+            "Darker colors represent more negative sentiments, while lighter colors represent more positive sentiments. The color scale on the right side of the plot "
+    "indicates the exact sentiment score range.")
+heatmap = make_heatmap(df_filtered, 'Company', 'Inspection Year', 'sentiment_avg', selected_color_theme)
+st.altair_chart(heatmap, use_container_width=True)
+
+# Add a separator line or space
+st.markdown("---")  # This adds a horizontal line for separation.
+
+# Second Row: Choropleth Map
+st.markdown('#### Choropleth Map of Total Issuer Audit Clients')
+st.markdown("This choropleth map displays the distribution of total issuer audit clients by country. "
+            "The color intensity on the map indicates the number of audit clients in each country, "
+    "with a darker color representing a higher number of clients. The color scale on the right side of the plot "
+    "provides the exact range of audit clients.")
+choropleth = make_choropleth(df_aggregated, 'Country', 'Total Issuer Audit Clients', selected_color_theme)
+st.plotly_chart(choropleth, use_container_width=True)
+
+# Add a separator line or space
+st.markdown("---")  # This adds a horizontal line for separation.
+
+st.markdown(
+    "#### Average Sentiment by Year\n"
+    "This line chart visualizes the average sentiment score over the years across different companies. "
+    "Each line represents a company, and the chart helps identify trends in sentiment over time."
+)
 line_chart = make_line_chart(df_filtered)
 st.altair_chart(line_chart, use_container_width=True)
 
-st.markdown('#### Average Word Count by Company')
+# Add a separator line or space
+st.markdown("---")  # This adds a horizontal line for separation.
+
+st.markdown(
+    "#### Average Word Count by Company\n"
+    "This plot shows the average word count of audit reports for each company. "
+    "It provides insight into the typical length of reports produced by different companies, "
+    "which could reflect the complexity or thoroughness of the audits. Higher word counts might indicate more detailed reports."
+)
 word_count_plot = make_word_count_plot(df_filtered)
 st.altair_chart(word_count_plot, use_container_width=True)
 
+# Add a separator line or space
+st.markdown("---")  # This adds a horizontal line for separation.
+
 # Additional plots (word_count, etc.) can be added similarly(added later).
 # Pie Chart: Distribution of Total Issuer Audit Clients by Company
-st.subheader('Distribution of Total Issuer Audit Clients by Company')
-fig_pie = px.pie(df_filtered, names='Company', values='Total Issuer Audit Clients', title='Distribution of Total Issuer Audit Clients by Company')
-st.plotly_chart(fig_pie)
+#st.subheader('Distribution of Total Issuer Audit Clients by Company')
+st.markdown(
+    "#### Distribution of Total Issuer Audit Clients by Company\n"
+    "This pie chart shows the distribution of total issuer audit clients among different companies. "
+    "It provides a visual breakdown of how audit clients are distributed across companies."
+)
+fig_pie = px.pie(df_filtered, names='Company', values='Total Issuer Audit Clients')
+st.plotly_chart(fig_pie, use_container_width=True)
+
+# Add a separator line or space
+st.markdown("---")  # This adds a horizontal line for separation.
 
 # Bar Chart: Total Issuer Audit Clients by Country and Company
-st.subheader('Total Issuer Audit Clients by Country and Company')
-fig_bar = px.bar(df_filtered, x='Country', y='Total Issuer Audit Clients', color='Company', barmode='group', title='Total Issuer Audit Clients by Country and Company')
-st.plotly_chart(fig_bar)
+#st.subheader('Total Issuer Audit Clients by Country and Company')
+st.markdown(
+    "#### Total Issuer Audit Clients by Country and Company\n"
+    "This bar chart presents the total number of issuer audit clients for each company, categorized by country. "
+    "The chart provides insight into the geographic distribution of audit clients among different companies."
+)
+fig_bar = px.bar(df_filtered, x='Country', y='Total Issuer Audit Clients', color='Company', barmode='group')
+st.plotly_chart(fig_bar, use_container_width=True)
+
+# Add a separator line or space
+st.markdown("---")  # This adds a horizontal line for separation.
+
 
 # Scatter Plot: Total Issuer Audit Clients vs. Part I.A Deficiency Rate
-st.subheader('Total Issuer Audit Clients vs. Part I.A Deficiency Rate')
-fig_scatter = px.scatter(df_filtered, x='Total Issuer Audit Clients', y='Part I.A Deficiency Rate', color='Company', size='Total Issuer Audit Clients', title='Total Issuer Audit Clients vs. Part I.A Deficiency Rate')
-st.plotly_chart(fig_scatter)
+#st.subheader('Total Issuer Audit Clients vs. Part I.A Deficiency Rate')
+st.markdown(
+    "#### Total Issuer Audit Clients vs. Part I.A Deficiency Rate\n"
+    "This scatter plot compares the total number of issuer audit clients with the Part I.A Deficiency Rate for each company. "
+    "The plot helps identify any correlation between the number of clients and the deficiency rates."
+)
+fig_scatter = px.scatter(df_filtered, x='Total Issuer Audit Clients', y='Part I.A Deficiency Rate', color='Company', size='Total Issuer Audit Clients')
+st.plotly_chart(fig_scatter, use_container_width=True)
+
+# Add a separator line or space
+st.markdown("---")  # This adds a horizontal line for separation.
 
 # Scatter Plot: Total Sentiment Average vs. Part I.A Deficiency Rate
-st.subheader('Total Sentiment Average vs. Part I.A Deficiency Rate')
-fig_scatter_1 = px.scatter(df_filtered, x='sentiment_avg', y='Part I.A Deficiency Rate', color='Company', size='sentiment_avg', title='Total Sentiment Average vs. Part I.A Deficiency Rate')
-st.plotly_chart(fig_scatter_1)
+#st.subheader('Total Sentiment Average vs. Part I.A Deficiency Rate')
+st.markdown(
+    "#### Total Sentiment Sum vs. Part I.A Deficiency Rate\n"
+    "This scatter plot compares the total sentiment scores with the Part I.A Deficiency Rate for each company or country. "
+    "The size of each point indicates the magnitude of sentiment scores, while the position shows the relationship between sentiment and deficiency rates."
+)
+fig_scatter_1 = px.scatter(df_filtered, x='sentiment_avg', y='Part I.A Deficiency Rate', color='Company', size='sentiment_avg')
+st.plotly_chart(fig_scatter_1, use_container_width=True)
+
+# Add a separator line or space
+st.markdown("---")  # This adds a horizontal line for separation.
 
 # Bar Chart: Total Issuer Audit Clients by Inspection Year and Company
-st.subheader('Total Issuer Audit Clients by Inspection Year and Company')
-fig_bar_year = px.bar(df_filtered, x='Inspection Year', y='Total Issuer Audit Clients', color='Company', title='Total Issuer Audit Clients by Inspection Year and Company')
-st.plotly_chart(fig_bar_year)
+#st.subheader('Total Issuer Audit Clients by Inspection Year and Company')
+st.markdown(
+    "#### Total Issuer Audit Clients by Inspection Year and Company\n"
+    "This bar chart displays the total number of issuer audit clients for each company, broken down by inspection year. "
+    "It highlights trends over time and allows for comparison between companies."
+)
+fig_bar_year = px.bar(df_filtered, x='Inspection Year', y='Total Issuer Audit Clients', color='Company')
+st.plotly_chart(fig_bar_year, use_container_width=True)
+
+# Add a separator line or space
+st.markdown("---")  # This adds a horizontal line for separation.
 
 # Box Plot: Sentiment Average Distribution by Company
-st.subheader('Sentiment Average Distribution by Company')
-fig_box_sentiment = px.box(df_filtered, x='Company', y='sentiment_avg', color='Company', title='Sentiment Average Distribution by Company')
-st.plotly_chart(fig_box_sentiment)
+#st.subheader('Sentiment Average Distribution by Company')
+st.markdown(
+    "#### Sentiment Average Distribution by Company\n"
+    "This box plot shows the distribution of sentiment averages for each company. "
+    "The box represents the interquartile range (IQR), the line inside the box represents the median, "
+    "and the whiskers show the range of the data."
+)
+fig_box_sentiment = px.box(df_filtered, x='Company', y='sentiment_avg', color='Company')
+st.plotly_chart(fig_box_sentiment, use_container_width=True)
+
+# Add a separator line or space
+st.markdown("---")  # This adds a horizontal line for separation.
 
 # Histogram: Distribution of Word Count by Company
-st.subheader('Distribution of Word Count by Company')
-fig_hist_word_count = px.histogram(df_filtered, x='word_count', color='Company', title='Distribution of Word Count by Company')
-st.plotly_chart(fig_hist_word_count)
+#st.subheader('Distribution of Word Count by Company')
+st.markdown(
+    "#### Distribution of Word Count by Company\n"
+    "This histogram illustrates the distribution of word counts in audit reports across different companies. "
+    "It helps identify how word counts vary among companies, indicating differences in report length."
+)
+fig_hist_word_count = px.histogram(df_filtered, x='word_count', color='Company')
+st.plotly_chart(fig_hist_word_count, use_container_width=True)

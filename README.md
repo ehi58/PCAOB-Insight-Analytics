@@ -54,12 +54,12 @@ To run this project locally, follow these steps:
 Here are some examples of the data visualizations included in the project:
 
 1. Heatmap of Inspection Results:
-    - Description: This heatmap provides a visual representation of the frequency and intensity of PCAOB inspection findings across different firms.
+    - Description: This heatmap shows the average sentiment scores over the years for each company.
     - Image:
 
 
 2. Choropleth Map of Inspections by Region:
-    - Description: The choropleth map shows the distribution of PCAOB inspections across various regions, highlighting areas with the most frequent inspections.
+    - Description: The choropleth map displays the distribution of total issuer audit clients by country, highlighting areas with the most frequent issuer audit clients.
     - Image:
 
 
