@@ -56,32 +56,32 @@ Here are some examples of the data visualizations included in the project:
 1. Heatmap of Inspection Results:
     - Description: This heatmap shows the average sentiment scores over the years for each company.
     - Image:
-
+    ![Heatmap](data/Screenshot_heatmap.png)
 
 2. Choropleth Map of Inspections by Region:
     - Description: The choropleth map displays the distribution of total issuer audit clients by country, highlighting areas with the most frequent issuer audit clients.
     - Image:
-
+    ![Choropleth](data/Screenshot_choropleth.png)
 
 3. Sentiment Analysis of Inspection Reports:
     - Description: Sentiment analysis plot that shows the overall tone of the inspection reports, with classifications such as positive, neutral, or negative.
-    - Image:
-
+    - Image:incoming standby
+    //<![Sentiment Analysis](screenshots/sentiment_analysis.png)>
 
 4. Pie Chart of Deficiencies:
     - Description: The pie chart provides a visual breakdown of the types of deficiencies found during PCAOB inspections, making it easier to see the proportions of different categories.
     - Image:
-
+    ![Pie Chart](data/Screenshot_pie_chart.png)
 
 5. Box Plot of Sentiment Scores:
     - Description: This box plot illustrates the distribution of sentiment scores across different firms, highlighting the spread and identifying any outliers in the data.
     - Image:
-
+    ![Box Plot](data/Screenshot_box_plot.png)
 
 6. Scatter Plot of Sentiment Scores vs Deficiencies:
     - Description: This scatter plot shows the relationship between sentiment scores and the number of deficiencies, helping to identify any potential correlations.
     - Image:
-
+    ![Scatter Plot](data/Screenshot_scatter_plot_sentiment_vs_deficiency.png)
 
 ## Conclusion
 The **PCAOB Inspection Project** provides valuable insights into the patterns and trends in PCAOB inspections. By leveraging data extraction, transformation, and visualization techniques, this project makes it easier to understand the impact of PCAOB findings across the industry.
