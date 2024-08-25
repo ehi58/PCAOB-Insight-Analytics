@@ -212,9 +212,9 @@ st.subheader('Total Issuer Audit Clients vs. Part I.A Deficiency Rate')
 fig_scatter = px.scatter(df_filtered, x='Total Issuer Audit Clients', y='Part I.A Deficiency Rate', color='Company', size='Total Issuer Audit Clients', title='Total Issuer Audit Clients vs. Part I.A Deficiency Rate')
 st.plotly_chart(fig_scatter)
 
-# Scatter Plot: Total Sentiment Sum vs. Part I.A Deficiency Rate
-st.subheader('Total Sentiment Sum vs. Part I.A Deficiency Rate')
-fig_scatter_1 = px.scatter(df_filtered, x='sentiment_sum', y='Part I.A Deficiency Rate', color='Company', size='sentiment_sum', title='Total Sentiment Sum vs. Part I.A Deficiency Rate')
+# Scatter Plot: Total Sentiment Average vs. Part I.A Deficiency Rate
+st.subheader('Total Sentiment Average vs. Part I.A Deficiency Rate')
+fig_scatter_1 = px.scatter(df_filtered, x='sentiment_avg', y='Part I.A Deficiency Rate', color='Company', size='sentiment_avg', title='Total Sentiment Average vs. Part I.A Deficiency Rate')
 st.plotly_chart(fig_scatter_1)
 
 # Bar Chart: Total Issuer Audit Clients by Inspection Year and Company
