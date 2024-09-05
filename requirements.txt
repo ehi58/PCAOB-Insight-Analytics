@@ -3,6 +3,7 @@ pandas
 numpy
 plotly
 altair
+redis==<version>
 #fastapi==0.112.1
 #uvicorn==0.30.6
 #gunicorn==22.0.0

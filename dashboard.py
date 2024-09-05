@@ -5,6 +5,7 @@ import altair as alt
 import plotly.express as px
 import os
 import re
+import redis
 
 # 3.1 Import libraries
 # Already done above.
@@ -15,6 +16,14 @@ port = int(os.environ.get("PORT", 8501))
 # Run the app with the specified port
 #st.set_option('server.port', port)
 
+# Connect to Redis using the URL from environment variable
+redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
+if redis_url:
+    redis_client = redis.StrictRedis.from_url(redis_url)
+else:
+    print("Redis URL not set. Redis caching will be disabled.")
+    redis_client = None
+
 # 3.2 Page configuration
 st.set_page_config(
     page_title="PCAOB Inspection Dashboard",
@@ -23,9 +32,26 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Function to fetch and cache the data
+def get_inspection_data():
+    if redis_client:
+        cached_data = redis_client.get('inspection_data')
+        if cached_data:
+            # Decode the cached data and load it into a DataFrame
+            decoded_data = cached_data.decode('utf-8')
+            return pd.read_json(decoded_data)
+    
+    # Fallback to load the data from disk if Redis is not used or cache is not found
+    data = pd.read_parquet('final_transformed_data.parquet', engine='pyarrow')
+    
+    if redis_client:
+        redis_client.setex('inspection_data', 3600, data.to_json())
+    
+    return data
+
 # 3.3 Load data
-# Reading the Parquet file in dashboard.py because csv file was too large for GitHub.
-df = pd.read_parquet('final_transformed_data.parquet')
+# Reading the Parquet file in dashboard.py because csv file was too large for GitHub. --Using Redis for caching the data
+df = get_inspection_data()
 
 # Preprocess the data
 df['Inspection Year'] = df['Inspection Year'].astype(str)
@@ -245,16 +271,39 @@ df_filtered = df_filtered[(df_filtered['document_sentiment_score'] >= selected_s
 
 # 3.4b Calculate key metrics
 total_clients = df_filtered['Total Issuer Audit Clients'].sum()
-avg_sentiment = df_filtered['document_sentiment_score'].mean().round(2)
-avg_word_count = df_filtered['word_count'].mean().round(2)
+avg_sentiment = df_filtered['document_sentiment_score'].mean()
+avg_word_count = df_filtered['word_count'].mean()
+
+# Check if total_clients is NaN or None, and handle accordingly
+if pd.isna(total_clients):
+    total_clients_display = "No data available"
+else:
+    total_clients_display = total_clients
+
+# Check if avg_sentiment is NaN or None, and handle accordingly
+if pd.isna(avg_sentiment):
+    avg_sentiment_display = "No data available"
+    st.write(f"**Try clicking Show Non-Global Network Companies**")
+else:
+    avg_sentiment_display = round(avg_sentiment, 2)
+
+# Check if avg_word_count is NaN or None, and handle accordingly
+if pd.isna(avg_word_count):
+    avg_word_count_display = "No data available"
+    st.write(f"**Try clicking Show Non-Global Network Companies**")
+else:
+    avg_word_count_display = round(avg_word_count, 2)
+
+# Display avg_sentiment_display in the dashboard
+#st.write(f"Average Sentiment: {avg_sentiment_display}")
 
 # 3.4c Display scorecards
 st.title('PCAOB Inspection Data Dashboard')
 
 col1, col2, col3 = st.columns(3)
-col1.metric("Total Issuer Audit Clients", f"{total_clients}")
-col2.metric("Average Sentiment", f"{avg_sentiment}")
-col3.metric("Average Word Count", f"{avg_word_count}")
+col1.metric("Total Issuer Audit Clients", f"{total_clients_display}")
+col2.metric("Average Sentiment", f"{avg_sentiment_display}")
+col3.metric("Average Word Count", f"{avg_word_count_display}")
 
 # 3.5 Plot and chart types
 
