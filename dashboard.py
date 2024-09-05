@@ -1,5 +1,4 @@
 import streamlit as st
-#import seaborn as sns
 import pandas as pd
 import altair as alt
 import plotly.express as px
@@ -45,13 +44,51 @@ df['Company'] = df['Company'].apply(
 float_columns = df.select_dtypes(include=['float64']).columns
 df[float_columns] = df[float_columns].round(3)
 
+# Function to cache filtered data
+@st.cache_data
+def filter_data(df, selected_inspection_type, selected_years, selected_countries, selected_companies, 
+                selected_total_issuer_audit_client_count, selected_total_audit_reviewed_count, 
+                selected_deficiency_rate_count, selected_word_count, selected_sentiment_range):
+
+    # Filter the dataframe based on selections
+    df_filtered = df.copy()
+
+    if selected_inspection_type:
+        df_filtered = df_filtered[df_filtered['Inspection Type'].isin(selected_inspection_type)]
+
+    if selected_years:
+        df_filtered = df_filtered[df_filtered['Inspection Year'].isin(selected_years)]
+
+    if selected_countries:
+        df_filtered = df_filtered[df_filtered['Country'].isin(selected_countries)]
+
+    if selected_companies:
+        df_filtered = df_filtered[df_filtered['Company'].isin(selected_companies)]
+
+    df_filtered = df_filtered[(df_filtered['Total Issuer Audit Clients'] >= selected_total_issuer_audit_client_count[0]) & 
+                              (df_filtered['Total Issuer Audit Clients'] <= selected_total_issuer_audit_client_count[1])]
+
+    df_filtered = df_filtered[(df_filtered['Audits Reviewed'] >= selected_total_audit_reviewed_count[0]) & 
+                              (df_filtered['Audits Reviewed'] <= selected_total_audit_reviewed_count[1])]
+
+    df_filtered = df_filtered[(df_filtered['Part I.A Deficiency Rate'] >= selected_deficiency_rate_count[0]) & 
+                              (df_filtered['Part I.A Deficiency Rate'] <= selected_deficiency_rate_count[1])]
+
+    df_filtered = df_filtered[(df_filtered['word_count'] >= selected_word_count[0]) & 
+                              (df_filtered['word_count'] <= selected_word_count[1])]
+
+    df_filtered = df_filtered[(df_filtered['document_sentiment_score'] >= selected_sentiment_range[0]) & 
+                              (df_filtered['document_sentiment_score'] <= selected_sentiment_range[1])]
+    
+    return df_filtered
+
 # 3.4 Add a sidebar
 with st.sidebar:
     st.title('📊 PCAOB Inspection Report Tool Dashboard')
 
     st.sidebar.subheader("Project Description")
     description = """
-    The Public Company Accounting Oversight Board (PCAOB) is responsible for overseeing the audits of public companies and registered audit firms(Global Network companies), 
+    The **Public Company Accounting Oversight Board (PCAOB)** is responsible for overseeing the audits of public companies and registered audit firms(Global Network companies), 
     ensuring compliance with PCAOB standards, regulations, and other relevant professional criteria.\n
     This dashboard provides a visual representation of data extracted from PCAOB inspection reports,
     focusing on key metrics such as sentiment analysis and audit deficiency rates, offering insights into audit quality and adherence to regulatory standards.\n
@@ -205,34 +242,40 @@ with st.sidebar:
     selected_color_theme = st.selectbox('Select a color theme', color_theme_list)
 
 
-# Filter the dataframe based on sidebar selections
-df_filtered = df.copy()
+# # Filter the dataframe based on sidebar selections
+# df_filtered = df.copy()
 
-# Initial filter based on a certain criteria to reduce data size
+# # Initial filter based on a certain criteria to reduce data size
 
-if selected_inspection_type:
-    df_filtered = df_filtered[df_filtered['Inspection Type'].isin(selected_inspection_type)]
+# if selected_inspection_type:
+#     df_filtered = df_filtered[df_filtered['Inspection Type'].isin(selected_inspection_type)]
 
-if selected_years:
-    df_filtered = df_filtered[df_filtered['Inspection Year'].isin(selected_years)]
+# if selected_years:
+#     df_filtered = df_filtered[df_filtered['Inspection Year'].isin(selected_years)]
 
-if selected_countries:
-    df_filtered = df_filtered[df_filtered['Country'].isin(selected_countries)]
+# if selected_countries:
+#     df_filtered = df_filtered[df_filtered['Country'].isin(selected_countries)]
 
-if selected_companies:
-    df_filtered = df_filtered[df_filtered['Company'].isin(selected_companies)]
+# if selected_companies:
+#     df_filtered = df_filtered[df_filtered['Company'].isin(selected_companies)]
 
-df_filtered = df_filtered[(df_filtered['Total Issuer Audit Clients'] >= selected_total_issuer_audit_client_count[0]) & (df_filtered['Total Issuer Audit Clients'] <= selected_total_issuer_audit_client_count[1])]
+# df_filtered = df_filtered[(df_filtered['Total Issuer Audit Clients'] >= selected_total_issuer_audit_client_count[0]) & (df_filtered['Total Issuer Audit Clients'] <= selected_total_issuer_audit_client_count[1])]
 
-df_filtered = df_filtered[(df_filtered['Audits Reviewed'] >= selected_total_audit_reviewed_count[0]) & (df_filtered['Audits Reviewed'] <= selected_total_audit_reviewed_count[1])]
+# df_filtered = df_filtered[(df_filtered['Audits Reviewed'] >= selected_total_audit_reviewed_count[0]) & (df_filtered['Audits Reviewed'] <= selected_total_audit_reviewed_count[1])]
 
-df_filtered = df_filtered[(df_filtered['Part I.A Deficiency Rate'] >= selected_deficiency_rate_count[0]) & (df_filtered['Part I.A Deficiency Rate'] <= selected_deficiency_rate_count[1])]
+# df_filtered = df_filtered[(df_filtered['Part I.A Deficiency Rate'] >= selected_deficiency_rate_count[0]) & (df_filtered['Part I.A Deficiency Rate'] <= selected_deficiency_rate_count[1])]
 
-df_filtered = df_filtered[(df_filtered['word_count'] >= selected_word_count[0]) & (df_filtered['word_count'] <= selected_word_count[1])]
+# df_filtered = df_filtered[(df_filtered['word_count'] >= selected_word_count[0]) & (df_filtered['word_count'] <= selected_word_count[1])]
 
 #Filtered data
 # Remove the "%" sign and convert the "Part I.A Deficiency Rate" column to float
 #df_filtered['Part I.A Deficiency Rate'] = df_filtered['Part I.A Deficiency Rate'].str.replace('%', '').astype(float)
+
+# Apply the filters and cache the result
+df_filtered = filter_data(df, selected_inspection_type, selected_years, selected_countries, selected_companies,
+                          selected_total_issuer_audit_client_count, selected_total_audit_reviewed_count,
+                          selected_deficiency_rate_count, selected_word_count, selected_sentiment_range)
+
 
 # Replace NaN values in the 'Total Issuer Audit Clients' column with 0 and convert to float
 df_filtered['Total Issuer Audit Clients'] = df_filtered['Total Issuer Audit Clients'].fillna(0).astype(float)
@@ -241,7 +284,7 @@ df_filtered['Total Issuer Audit Clients'] = df_filtered['Total Issuer Audit Clie
 df_filtered['Total Issuer Audit Clients'].fillna(0, inplace=True)
 
 # Apply document_sentiment_score filter
-df_filtered = df_filtered[(df_filtered['document_sentiment_score'] >= selected_sentiment_range[0]) & (df_filtered['document_sentiment_score'] <= selected_sentiment_range[1])]
+#df_filtered = df_filtered[(df_filtered['document_sentiment_score'] >= selected_sentiment_range[0]) & (df_filtered['document_sentiment_score'] <= selected_sentiment_range[1])]
 
 # 3.4b Calculate key metrics
 total_clients = df_filtered['Total Issuer Audit Clients'].sum()
@@ -566,4 +609,4 @@ df_filtered['pdf_link_hyperlink'] = df_filtered['pdf_link'].apply(lambda x: f'<a
 st.write("You can click on the PDF links below for more details:")
 
 # Display a clickable table with Inspection Year, Company, and PDF links
-st.write(df_filtered[['pdf_link_hyperlink', 'Inspection Report Date', 'Inspection Year', 'Inspection Type', 'Part I.A Deficiency Rate', 'Country', 'Global Network Company', 'Firm Names', 'document_sentiment_score']].to_html(escape=False, index=False), unsafe_allow_html=True)
+st.write(df_filtered[['pdf_link_hyperlink', 'Inspection Report Date', 'Inspection Year', 'Inspection Type', 'Part I.A Deficiency Rate', 'Country', 'Global Network Company', 'Firm Names', 'document_sentiment_score']].head(10).to_html(escape=False, index=False), unsafe_allow_html=True)
