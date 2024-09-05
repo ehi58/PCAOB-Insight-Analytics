@@ -110,6 +110,9 @@ with st.sidebar:
     # Sidebar filter for users to reintroduce 'Non-Global Network Company'
     reintroduce_non_global = st.sidebar.checkbox('Show Non-Global Network Companies.\n\n (Warning! - Some plots might crash out if other data is not filtered out or vice versa.)', value=False) # Target US and Canada and filter out other countries.
 
+    # Sidebar filter to reintroduce Inspection Years less than 2015
+    reintroduce_pre_2015 = st.sidebar.checkbox('Show Inspection Years less than 2015', value=False)
+
     # Filters
     # Inspection Type Filter
     with st.expander("Select Inspection Type"):
@@ -130,11 +133,14 @@ with st.sidebar:
             'Select Inspection Type',
             options=filtered_inspection_types,
             default=filtered_inspection_types,
-            help="Type in the inspection type to search and filter."
+            help="Type in the inspection type to search and filter.\n Enter multiple values typing space, comma, or semi-colon."
         )
 
     # Years Filter
     with st.expander("Select Years"):
+        if not reintroduce_pre_2015:
+            df = df[df['Inspection Year'].astype(int) >= 2015]
+
         years_input = st.text_input("Type to search Years (you can separate search terms with a comma)", value="")
         search_terms = [term.strip().lower() for term in re.split(r'[,\s;]+', years_input) if term]
         
@@ -148,7 +154,7 @@ with st.sidebar:
             'Select Years',
             options=filtered_years,
             default=filtered_years,
-            help="Type in the year to search and filter."
+            help="Type in the year to search and filter.\n Enter multiple values typing space, comma, or semi-colon."
         )
 
     # Countries Filter
@@ -166,7 +172,7 @@ with st.sidebar:
             'Select Countries',
             options=filtered_countries,
             default=filtered_countries,
-            help="Type in the country name to search and filter."
+            help="Type in the country name to search and filter.\n Enter multiple values typing space, comma, or semi-colon."
         )
 
     # Global Networks Filter
@@ -187,7 +193,7 @@ with st.sidebar:
             'Select Global Network',
             options=filtered_companies,
             default=filtered_companies,
-            help="Type in the global network name to search and filter."
+            help="Type in the global network name to search and filter.\n Enter multiple values typing space, comma, or semi-colon."
         )
 
     # Firm Names Filter
@@ -205,7 +211,7 @@ with st.sidebar:
             'Select Firm Names',
             options=filtered_firms,
             default=filtered_firms,
-            help="Type in the firm name to search and filter."
+            help="Type in the firm name to search and filter.\n Enter multiple values typing space, comma, or semi-colon."
         )
 
     #Add a slider filter for Total Issuer Audit Clients
@@ -609,4 +615,4 @@ df_filtered['pdf_link_hyperlink'] = df_filtered['pdf_link'].apply(lambda x: f'<a
 st.write("You can click on the PDF links below for more details:")
 
 # Display a clickable table with Inspection Year, Company, and PDF links
-st.write(df_filtered[['pdf_link_hyperlink', 'Inspection Report Date', 'Inspection Year', 'Inspection Type', 'Part I.A Deficiency Rate', 'Country', 'Global Network Company', 'Firm Names', 'document_sentiment_score']].head(10).to_html(escape=False, index=False), unsafe_allow_html=True)
+st.write(df_filtered[['pdf_link_hyperlink', 'Inspection Report Date', 'Inspection Year', 'Inspection Type', 'Part I.A Deficiency Rate', 'Country', 'Global Network Company', 'Firm Names', 'document_sentiment_score']].head(5).to_html(escape=False, index=False), unsafe_allow_html=True)
