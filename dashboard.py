@@ -5,7 +5,6 @@ import altair as alt
 import plotly.express as px
 import os
 import re
-import redis
 
 # 3.1 Import libraries
 # Already done above.
@@ -16,14 +15,6 @@ port = int(os.environ.get("PORT", 8501))
 # Run the app with the specified port
 #st.set_option('server.port', port)
 
-# Connect to Redis using the URL from environment variable
-redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
-if redis_url:
-    redis_client = redis.StrictRedis.from_url(redis_url)
-else:
-    print("Redis URL not set. Redis caching will be disabled.")
-    redis_client = None
-
 # 3.2 Page configuration
 st.set_page_config(
     page_title="PCAOB Inspection Dashboard",
@@ -32,26 +23,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Function to fetch and cache the data
-def get_inspection_data():
-    if redis_client:
-        cached_data = redis_client.get('inspection_data')
-        if cached_data:
-            # Decode the cached data and load it into a DataFrame
-            decoded_data = cached_data.decode('utf-8')
-            return pd.read_json(decoded_data)
-    
-    # Fallback to load the data from disk if Redis is not used or cache is not found
-    data = pd.read_parquet('final_transformed_data.parquet', engine='pyarrow')
-    
-    if redis_client:
-        redis_client.setex('inspection_data', 3600, data.to_json())
-    
-    return data
-
 # 3.3 Load data
-# Reading the Parquet file in dashboard.py because csv file was too large for GitHub. --Using Redis for caching the data
-df = get_inspection_data()
+# Reading the Parquet file in dashboard.py because csv file was too large for GitHub.
+df = pd.read_csv('final_transformed_data_compressed.csv')
 
 # Preprocess the data
 df['Inspection Year'] = df['Inspection Year'].astype(str)
@@ -592,4 +566,4 @@ df_filtered['pdf_link_hyperlink'] = df_filtered['pdf_link'].apply(lambda x: f'<a
 st.write("You can click on the PDF links below for more details:")
 
 # Display a clickable table with Inspection Year, Company, and PDF links
-st.write(df_filtered[['pdf_link_hyperlink', 'Inspection Report Date', 'Inspection Year', 'Inspection Type', 'Country', 'Global Network Company', 'Firm Names']].to_html(escape=False, index=False), unsafe_allow_html=True)
+st.write(df_filtered[['pdf_link_hyperlink', 'Inspection Report Date', 'Inspection Year', 'Inspection Type', 'Part I.A Deficiency Rate', 'Country', 'Global Network Company', 'Firm Names', 'document_sentiment_score']].to_html(escape=False, index=False), unsafe_allow_html=True)
