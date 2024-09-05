@@ -25,7 +25,7 @@ st.set_page_config(
 
 # 3.3 Load data
 # Reading the Parquet file in dashboard.py because csv file was too large for GitHub.
-df = pd.read_csv('final_transformed_data_compressed.csv')
+df = pd.read_parquet('final_transformed_data_compressed.parquet', engine='pyarrow')
 
 # Preprocess the data
 df['Inspection Year'] = df['Inspection Year'].astype(str)
