@@ -7,4 +7,8 @@ __pycache__/
 # Elastic Beanstalk Files
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
-!.elasticbeanstalk/*.global.yml
+!.elasticbeanstalk/*.global.ymlawsebcli-env/
+
+
+awsebcli-env/awsebcli-env/
+awsebcli-env/
