@@ -1,18 +1,16 @@
+import os
+import redis
+import pickle
 import streamlit as st
 import pandas as pd
 import altair as alt
 import plotly.express as px
-import os
 import re
 
-# 3.1 Import libraries
-# Already done above.
+from dotenv import load_dotenv
 
 # Get the port from the environment variable
 port = int(os.environ.get("PORT", 8501))
-
-# Run the app with the specified port
-#st.set_option('server.port', port)
 
 # 3.2 Page configuration
 st.set_page_config(
@@ -21,6 +19,46 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+
+# Load environment variables from .env file
+load_dotenv()  # Take environment variables from .env file
+
+# # Connect to Redis using the REDIS_URL from the .env file
+# redis_url = os.getenv('REDIS_URL')
+
+# if redis_url:
+#     r = redis.from_url(redis_url)
+#     st.write("Connected to Redis server.")
+# else:
+#     st.error("Redis URL not found. Please check your .env file.")
+
+
+# Run the app with the specified port
+#st.set_option('server.port', port)
+
+# Connect to Redis using the REDIS_URL environment variable
+redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
+r = redis.from_url(redis_url)
+
+# Redis Cache Decorator
+def redis_cache(func):
+    def wrapper(*args, **kwargs):
+        # Create a unique cache key using function name and arguments
+        cache_key = f"{func.__name__}:{pickle.dumps((args, kwargs))}"
+
+        # Check if the result is already cached
+        cached_result = r.get(cache_key)
+        if cached_result:
+            return pickle.loads(cached_result)
+
+        # If not cached, execute function and cache result
+        result = func(*args, **kwargs)
+        r.setex(cache_key, 3600, pickle.dumps(result))  # Cache for 1 hour
+        return result
+    return wrapper
+
+
 
 # 3.3 Load data
 # Reading the Parquet file in dashboard.py because csv file was too large for GitHub.
@@ -44,39 +82,30 @@ df['Company'] = df['Company'].apply(
 float_columns = df.select_dtypes(include=['float64']).columns
 df[float_columns] = df[float_columns].round(3)
 
-# Function to cache filtered data
-@st.cache_data
+# Filter data and use Redis for caching
+@redis_cache
 def filter_data(df, selected_inspection_type, selected_years, selected_countries, selected_companies, 
                 selected_total_issuer_audit_client_count, selected_total_audit_reviewed_count, 
                 selected_deficiency_rate_count, selected_word_count, selected_sentiment_range):
-
     # Filter the dataframe based on selections
     df_filtered = df.copy()
-
     if selected_inspection_type:
         df_filtered = df_filtered[df_filtered['Inspection Type'].isin(selected_inspection_type)]
-
     if selected_years:
         df_filtered = df_filtered[df_filtered['Inspection Year'].isin(selected_years)]
-
     if selected_countries:
         df_filtered = df_filtered[df_filtered['Country'].isin(selected_countries)]
-
     if selected_companies:
         df_filtered = df_filtered[df_filtered['Company'].isin(selected_companies)]
-
+    
     df_filtered = df_filtered[(df_filtered['Total Issuer Audit Clients'] >= selected_total_issuer_audit_client_count[0]) & 
                               (df_filtered['Total Issuer Audit Clients'] <= selected_total_issuer_audit_client_count[1])]
-
     df_filtered = df_filtered[(df_filtered['Audits Reviewed'] >= selected_total_audit_reviewed_count[0]) & 
                               (df_filtered['Audits Reviewed'] <= selected_total_audit_reviewed_count[1])]
-
     df_filtered = df_filtered[(df_filtered['Part I.A Deficiency Rate'] >= selected_deficiency_rate_count[0]) & 
                               (df_filtered['Part I.A Deficiency Rate'] <= selected_deficiency_rate_count[1])]
-
     df_filtered = df_filtered[(df_filtered['word_count'] >= selected_word_count[0]) & 
                               (df_filtered['word_count'] <= selected_word_count[1])]
-
     df_filtered = df_filtered[(df_filtered['document_sentiment_score'] >= selected_sentiment_range[0]) & 
                               (df_filtered['document_sentiment_score'] <= selected_sentiment_range[1])]
     
@@ -84,9 +113,9 @@ def filter_data(df, selected_inspection_type, selected_years, selected_countries
 
 # 3.4 Add a sidebar
 with st.sidebar:
-    st.title('📊 PCAOB Inspection Report Tool Dashboard')
+    st.title('📊 [PCAOB Inspection Report Tool Dashboard](https://docs.google.com/presentation/d/1z12dhL7corLwyZpcDrbRIXcPJnDSUIWVdK9GiUp2enM/pub?start=true&loop=true&delayms=5000)')
 
-    st.sidebar.subheader("Project Description")
+    st.sidebar.subheader("[Project Description](https://docs.google.com/presentation/d/1z12dhL7corLwyZpcDrbRIXcPJnDSUIWVdK9GiUp2enM/pub?start=true&loop=true&delayms=5000)")
     description = """
     The **Public Company Accounting Oversight Board (PCAOB)** is responsible for overseeing the audits of public companies and registered audit firms(Global Network companies), 
     ensuring compliance with PCAOB standards, regulations, and other relevant professional criteria.\n
@@ -426,6 +455,9 @@ def make_word_count_plot(input_df):
 df_filtered['Firm Names'] = df_filtered['Inspection Report Company']
 df_filtered['Global Network Company'] = df_filtered['Company']
 
+# Add a separator line or space
+st.markdown("---")  # This adds a horizontal line for separation.
+
 #Aggregated Metrics for Choropleth Map
 df_aggregated = df_filtered.groupby('Country')['Total Issuer Audit Clients'].sum().reset_index()
 df_aggregated1 = df_filtered.groupby(['Inspection Year', 'Company'], as_index=False)['Part I.A Deficiency Rate'].mean()
@@ -615,4 +647,4 @@ df_filtered['pdf_link_hyperlink'] = df_filtered['pdf_link'].apply(lambda x: f'<a
 st.write("You can click on the PDF links below for more details:")
 
 # Display a clickable table with Inspection Year, Company, and PDF links
-st.write(df_filtered[['pdf_link_hyperlink', 'Inspection Report Date', 'Inspection Year', 'Inspection Type', 'Part I.A Deficiency Rate', 'Country', 'Global Network Company', 'Firm Names', 'document_sentiment_score']].head(5).to_html(escape=False, index=False), unsafe_allow_html=True)
+st.write(df_filtered[['pdf_link_hyperlink', 'Inspection Report Date', 'Inspection Year', 'Inspection Type', 'Part I.A Deficiency Rate', 'Country', 'Global Network Company', 'Firm Names', 'document_sentiment_score']].head(10).to_html(escape=False, index=False), unsafe_allow_html=True)
