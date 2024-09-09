@@ -47,12 +47,6 @@ if not redis_url:
 # Initialize Redis connection    
 r = redis.from_url(redis_url)
 
-try:
-    r.ping()  # Test the connection to Redis
-    print("Connected to Redis")
-except redis.ConnectionError:
-    print("Failed to connect to Redis")
-
 # Redis Cache Decorator
 def redis_cache(func):
     def wrapper(*args, **kwargs):
