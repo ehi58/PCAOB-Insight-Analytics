@@ -1,6 +1,6 @@
 import os
-import redis
-import pickle
+#import redis
+#import pickle
 import streamlit as st
 import pandas as pd
 import altair as alt
@@ -37,35 +37,34 @@ load_dotenv()  # Take environment variables from .env file
 # Run the app with the specified port
 #st.set_option('server.port', port)
 
-# Check if we are on Heroku and use the environment Redis URL
-redis_url = os.getenv('REDIS_URL')
+# # Get the Redis URL from the environment variable
+# redis_url = os.getenv('REDIS_URL')
 
-if not redis_url:
-    # If REDIS_URL is not set (local or misconfigured), use localhost for Redis
-    redis_url = 'redis://localhost:6379'
+# # Initialize Redis connection
+# try:
+#     r = redis.from_url(redis_url, retry_on_timeout=True, socket_connect_timeout=10)
+#     st.write("Connected to Redis server.")
+# except redis.ConnectionError as e:
+#     st.error(f"Failed to connect to Redis: {str(e)}")
+#     r = None  # Set Redis to None to handle the case when Redis isn't available
 
-# Initialize Redis connection    
-r = redis.from_url(redis_url)
-
-# Redis Cache Decorator
-def redis_cache(func):
-    def wrapper(*args, **kwargs):
-        # Create a unique cache key using function name and arguments
-        cache_key = f"{func.__name__}:{pickle.dumps((args, kwargs))}"
-
-        # Check if the result is already cached
-        cached_result = r.get(cache_key)
-        if cached_result:
-            return pickle.loads(cached_result)
-
-        # If not cached, execute function and cache result
-        result = func(*args, **kwargs)
-        r.setex(cache_key, 3600, pickle.dumps(result))  # Cache for 1 hour
-        return result
-    return wrapper
-
+# # Redis Cache Decorator
+# def redis_cache(func):
+#     def wrapper(*args, **kwargs):
+#         cache_key = f"{func.__name__}:{pickle.dumps((args, kwargs))}"
+#         if r:
+#             cached_result = r.get(cache_key)
+#             if cached_result:
+#                 return pickle.loads(cached_result)
+#             result = func(*args, **kwargs)
+#             r.setex(cache_key, 3600, pickle.dumps(result))  # Cache for 1 hour
+#             return result
+#         else:
+#             return func(*args, **kwargs)
+#     return wrapper
 
 
+#------------------------------------------------------------------------------------------------
 # 3.3 Load data
 # Reading the Parquet file in dashboard.py because csv file was too large for GitHub.
 df = pd.read_parquet('final_transformed_data_compressed.parquet', engine='pyarrow')
@@ -89,7 +88,7 @@ float_columns = df.select_dtypes(include=['float64']).columns
 df[float_columns] = df[float_columns].round(3)
 
 # Filter data and use Redis for caching
-@redis_cache
+#@redis_cache
 def filter_data(df, selected_inspection_type, selected_years, selected_countries, selected_companies, 
                 selected_total_issuer_audit_client_count, selected_total_audit_reviewed_count, 
                 selected_deficiency_rate_count, selected_word_count, selected_sentiment_range):
