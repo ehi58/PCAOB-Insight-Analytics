@@ -37,9 +37,21 @@ load_dotenv()  # Take environment variables from .env file
 # Run the app with the specified port
 #st.set_option('server.port', port)
 
-# Connect to Redis using the REDIS_URL environment variable
-redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
+# Check if we are on Heroku and use the environment Redis URL
+redis_url = os.getenv('REDIS_URL')
+
+if not redis_url:
+    # If REDIS_URL is not set (local or misconfigured), use localhost for Redis
+    redis_url = 'redis://localhost:6379'
+
+# Initialize Redis connection    
 r = redis.from_url(redis_url)
+
+try:
+    r.ping()  # Test the connection to Redis
+    print("Connected to Redis")
+except redis.ConnectionError:
+    print("Failed to connect to Redis")
 
 # Redis Cache Decorator
 def redis_cache(func):
