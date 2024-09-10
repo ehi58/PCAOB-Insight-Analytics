@@ -20,6 +20,14 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Adding Open Graph meta tags for preview
+st.markdown("""
+    <meta property="og:title" content="PCAOB Inspection Dashboard">
+    <meta property="og:description" content="Visualize data extracted from PCAOB inspection reports, including audit deficiency rates and sentiment analysis.">
+    <meta property="og:image" content="https://streamlit-deployment1.s3.amazonaws.com/Deficiency_Rate_By_Year_Company.png">
+    <meta property="og:url" content="https://pcaob-dashboard-58a559be1fc1.herokuapp.com/">
+    <meta name="twitter:card" content="summary_large_image">
+""", unsafe_allow_html=True)
 
 # Load environment variables from .env file
 load_dotenv()  # Take environment variables from .env file
